@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pointer Lock & Humanized Anti-Bot Cursor Demo</title>
+  <style>
+    :root {
+      --bg-main: #0c111c;
+      --bg-surface: #151d2d;
+      --border-color: #243247;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --yt-red: #ef4444;
+      --yt-red-hover: #dc2626;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent-green: #22c55e;
+      --canvas-bg: #070a10;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      line-height: 1.6;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 240vh;
+      padding: 32px 16px 100px;
+    }
+
+    /* Bagian Atas: Hero Section */
+    .hero-section {
+      width: 100%;
+      max-width: 860px;
+      min-height: 60vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 48px 24px;
+      margin-bottom: 64px;
+    }
+
+    .hero-title {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 12px;
+    }
+
+    .hero-desc {
+      font-size: 1rem;
+      color: var(--text-muted);
+      max-width: 620px;
+      margin-bottom: 32px;
+    }
+
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      justify-content: center;
+    }
+
+    .btn-action {
+      background-color: var(--primary);
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      padding: 14px 26px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s ease, transform 0.1s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-action:hover {
+      background-color: var(--primary-hover);
+    }
+
+    .btn-action:active {
+      transform: scale(0.98);
+    }
+
+    .btn-action:focus-visible {
+      outline: 2px solid #60a5fa;
+      outline-offset: 2px;
+    }
+
+    .btn-secondary {
+      background-color: #1e293b;
+      color: var(--text-main);
+      border: 1px solid #334155;
+    }
+
+    .btn-secondary:hover {
+      background-color: #334155;
+    }
+
+    /* Container Area Interaksi Canvas */
+    .game-section {
+      width: 100%;
+      max-width: 860px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 96px;
+    }
+
+    /* Panel Status Real-time */
+    .status-panel {
+      width: 100%;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 14px 20px;
+      font-size: 0.9rem;
+      gap: 12px;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 0.8rem;
+    }
+
+    .badge-locked {
+      background-color: rgba(34, 197, 94, 0.15);
+      color: var(--accent-green);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+
+    .badge-unlocked {
+      background-color: rgba(239, 68, 68, 0.15);
+      color: var(--yt-red);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .coord-value {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      color: #38bdf8;
+      font-weight: 600;
+    }
+
+    /* Wrapper Canvas */
+    .canvas-wrapper {
+      position: relative;
+      width: 100%;
+      max-width: 800px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      overflow: hidden;
+      background-color: var(--canvas-bg);
+      box-shadow: 0 16px 32px rgba(0, 0, 0, 0.4);
+    }
+
+    canvas {
+      display: block;
+      width: 800px;
+      height: 400px;
+      margin: 0 auto;
+      background-color: var(--canvas-bg);
+      cursor: crosshair;
+    }
+
+    .hint-bar {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    /* Container YouTube */
+    .link-section {
+      width: 100%;
+      max-width: 860px;
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 40px 28px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+      transition: border-color 0.4s ease, box-shadow 0.4s ease;
+    }
+
+    .link-section.is-highlighted {
+      border-color: var(--yt-red);
+      box-shadow: 0 0 24px rgba(239, 68, 68, 0.35);
+    }
+
+    .link-section-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .link-section-desc {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      max-width: 540px;
+    }
+
+    .yt-link-btn {
+      background-color: var(--yt-red);
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      padding: 14px 28px;
+      font-size: 1rem;
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      transition: background-color 0.2s ease, transform 0.1s ease;
+    }
+
+    .yt-link-btn:hover {
+      background-color: var(--yt-red-hover);
+    }
+
+    .yt-link-btn:active {
+      transform: scale(0.98);
+    }
+
+    .yt-link-btn:focus-visible {
+      outline: 2px solid #f87171;
+      outline-offset: 2px;
+    }
+
+    .click-feedback {
+      font-size: 0.85rem;
+      color: #38bdf8;
+      min-height: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Bagian Atas: Hero Section -->
+  <header class="hero-section">
+    <h1 class="hero-title">Pointer Lock & Smooth Scroll Demo</h1>
+    <p class="hero-desc">
+      Demonstrasi penguncian kursor dengan algoritma humanizer (anti-teleport) untuk mencegah flag bot atau anomali pergerakan kursor sistem.
+    </p>
+
+    <div class="button-group">
+      <button id="btn-start" type="button" class="btn-action">
+        Tombol A: Kunci Kursor & Scroll Canvas
+      </button>
+      <button id="btn-youtube-action" type="button" class="btn-action btn-secondary">
+        Tombol B: Scroll & Buka Link YouTube
+      </button>
+    </div>
+  </header>
+
+  <!-- Bagian Tengah: Container Canvas Game Area -->
+  <main class="game-section" id="game-container">
+    <!-- Panel Indikator Status Real-time -->
+    <div class="status-panel">
+      <div class="status-item">
+        <span>Status Pointer:</span>
+        <span id="lock-status-badge" class="badge badge-unlocked">Unlocked</span>
+      </div>
+      <div class="status-item">
+        <span>Mode Gerak:</span>
+        <span id="motion-mode-display" class="coord-value">Idle</span>
+      </div>
+      <div class="status-item">
+        <span>Posisi (X, Y):</span>
+        <span id="pos-display" class="coord-value">0, 0 px</span>
+      </div>
+      <div class="status-item">
+        <span>Delta Terakhir:</span>
+        <span id="delta-display" class="coord-value">dX: 0, dY: 0</span>
+      </div>
+    </div>
+
+    <!-- Container Elemen Canvas (800 x 400 piksel) -->
+    <div class="canvas-wrapper">
+      <canvas id="game-canvas" width="800" height="400"></canvas>
+    </div>
+
+    <p class="hint-bar">
+      Petunjuk: Gerakkan mouse untuk menggeser kursor kustom. Tekan <strong>ESC</strong> untuk melepas kuncian kursor.
+    </p>
+  </main>
+
+  <!-- Bagian Bawah: Container dengan Link ke YouTube -->
+  <section class="link-section" id="youtube-container">
+    <h2 class="link-section-title">Container Tujuan: YouTube</h2>
+    <p class="link-section-desc">
+      Container target navigasi eksternal. Tombol B menggulirkan viewport ke sini dan membuka tautan tujuan.
+    </p>
+
+    <a id="youtube-link" href="https://www.youtube.com" target="_blank" rel="noopener noreferrer" class="yt-link-btn">
+      Buka YouTube (youtube.com)
+    </a>
+
+    <p id="click-feedback-text" class="click-feedback"></p>
+  </section>
+
+  <script>
+    // Referensi elemen DOM
+    const btnStart = document.getElementById('btn-start');
+    const canvas = document.getElementById('game-canvas');
+    const ctx = canvas.getContext('2d');
+
+    const statusBadge = document.getElementById('lock-status-badge');
+    const motionModeDisplay = document.getElementById('motion-mode-display');
+    const posDisplay = document.getElementById('pos-display');
+    const deltaDisplay = document.getElementById('delta-display');
+
+    const btnYoutubeAction = document.getElementById('btn-youtube-action');
+    const youtubeContainer = document.getElementById('youtube-container');
+    const youtubeLink = document.getElementById('youtube-link');
+    const feedbackText = document.getElementById('click-feedback-text');
+
+    // Konfigurasi kursor kustom
+    const cursorRadius = 12;
+    let cursorX = canvas.width / 2;
+    let cursorY = canvas.height / 2;
+    let lastDeltaX = 0;
+    let lastDeltaY = 0;
+
+    // State transisi humanizer (anti-teleport)
+    let isTransitioning = false;
+    let transitionStartTime = 0;
+    const transitionDuration = 360; // 360ms: durasi gerak tangan manusia alami menurut hukum Fitts
+
+    // Titik kontrol kurva Bézier untuk simulasi lengkungan ayunan tangan manusia
+    let p0 = { x: 0, y: 0 };
+    let p1 = { x: 0, y: 0 };
+    let p2 = { x: 0, y: 0 };
+    let p3 = { x: canvas.width / 2, y: canvas.height / 2 };
+
+    function isPointerLocked() {
+      return document.pointerLockElement === canvas || document.mozPointerLockElement === canvas;
+    }
+
+    function updateStatusUI(modeName) {
+      const locked = isPointerLocked();
+      statusBadge.textContent = locked ? 'Locked' : 'Unlocked';
+      statusBadge.className = 'badge ' + (locked ? 'badge-locked' : 'badge-unlocked');
+
+      if (modeName) {
+        motionModeDisplay.textContent = modeName;
+      } else if (isTransitioning) {
+        motionModeDisplay.textContent = 'Humanized Bézier';
+      } else if (locked) {
+        motionModeDisplay.textContent = 'Pure Physical Input';
+      } else {
+        motionModeDisplay.textContent = 'Idle';
+      }
+
+      posDisplay.textContent = Math.round(cursorX) + ', ' + Math.round(cursorY) + ' px';
+      deltaDisplay.textContent = 'dX: ' + lastDeltaX + ', dY: ' + lastDeltaY;
+    }
+
+    // Fungsi Easing: Cubic Ease-Out (akselerasi awal lalu perlambatan halus mendekati target)
+    function easeOutCubic(t) {
+      return 1 - Math.pow(1 - t, 3);
+    }
+
+    // Kalkulasi posisi pada Kurva Kubik Bézier: B(u) = (1-u)^3*P0 + 3(1-u)^2*u*P1 + 3(1-u)*u^2*P2 + u^3*P3
+    function getBezierPoint(u, p0, p1, p2, p3) {
+      const oneMinusU = 1 - u;
+      const oneMinusU2 = oneMinusU * oneMinusU;
+      const oneMinusU3 = oneMinusU2 * oneMinusU;
+      const u2 = u * u;
+      const u3 = u2 * u;
+
+      return {
+        x: oneMinusU3 * p0.x + 3 * oneMinusU2 * u * p1.x + 3 * oneMinusU * u2 * p2.x + u3 * p3.x,
+        y: oneMinusU3 * p0.y + 3 * oneMinusU2 * u * p1.y + 3 * oneMinusU * u2 * p2.y + u3 * p3.y
+      };
+    }
+
+    // Menyiapkan lintasan kurva Bézier dengan deviasi lateral acak (kurvatur tangan manusia)
+    function startHumanizedTransition(originX, originY) {
+      p0 = { x: originX, y: originY };
+      p3 = { x: canvas.width / 2, y: canvas.height / 2 };
+
+      // Vektor jarak dan normal untuk membuat lengkungan samping alami
+      const dx = p3.x - p0.x;
+      const dy = p3.y - p0.y;
+      const dist = Math.hypot(dx, dy) || 1;
+
+      // Normal vektor tegak lurus terhadap arah gerakan
+      const nx = -dy / dist;
+      const ny = dx / dist;
+
+      // Variasi kurvatur acak antara -25px hingga +25px
+      const curvature = (Math.random() - 0.5) * 50;
+
+      // Titik kontrol 1 dan 2 dengan deviasi mikro
+      p1 = {
+        x: p0.x + dx * 0.33 + nx * curvature + (Math.random() - 0.5) * 6,
+        y: p0.y + dy * 0.33 + ny * curvature + (Math.random() - 0.5) * 6
+      };
+      p2 = {
+        x: p0.x + dx * 0.66 + nx * (curvature * 0.6) + (Math.random() - 0.5) * 4,
+        y: p0.y + dy * 0.66 + ny * (curvature * 0.6) + (Math.random() - 0.5) * 4
+      };
+
+      transitionStartTime = performance.now();
+      isTransitioning = true;
+      updateStatusUI('Humanized Bézier');
+    }
+
+    function requestCanvasPointerLock() {
+      try {
+        const lockPromise = canvas.requestPointerLock({
+          unadjustedMovement: true
+        });
+
+        if (lockPromise && typeof lockPromise.catch === 'function') {
+          lockPromise.catch((err) => {
+            if (err.name === 'NotSupportedError') {
+              canvas.requestPointerLock();
+            } else {
+              console.warn('Pointer lock ditolak:', err.message);
+            }
+          });
+        }
+      } catch (err) {
+        const requestLock = canvas.requestPointerLock || canvas.mozRequestPointerLock;
+        if (requestLock) {
+          requestLock.call(canvas);
+        }
+      }
+    }
+
+    // Tombol A: Memicu transisi humanizer dari posisi tombol menuju titik tengah kanvas
+    btnStart.addEventListener('click', (event) => {
+      // Hitung koordinat awal relatif terhadap kanvas berdasarkan klik fisik tombol
+      const canvasRect = canvas.getBoundingClientRect();
+      const originX = event.clientX - canvasRect.left;
+      const originY = event.clientY - canvasRect.top;
+
+      // Clamp titik awal agar masuk akal
+      const clampedOriginX = Math.max(cursorRadius, Math.min(canvas.width - cursorRadius, originX));
+      const clampedOriginY = Math.max(cursorRadius, Math.min(canvas.height - cursorRadius, originY));
+
+      // Jalankan interpolasi humanized non-linear (bukan teleport 0ms)
+      startHumanizedTransition(clampedOriginX, clampedOriginY);
+
+      canvas.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
+
+      requestCanvasPointerLock();
+    });
+
+    canvas.addEventListener('click', () => {
+      if (!isPointerLocked()) {
+        requestCanvasPointerLock();
+      }
+    });
+
+    document.addEventListener('pointerlockchange', () => {
+      if (!isPointerLocked()) {
+        isTransitioning = false;
+      }
+      updateStatusUI();
+    });
+    document.addEventListener('mozpointerlockchange', () => {
+      if (!isPointerLocked()) {
+        isTransitioning = false;
+      }
+      updateStatusUI();
+    });
+
+    // Event mousemove: Membaca input fisik murni dari pengguna
+    document.addEventListener('mousemove', (event) => {
+      if (!isPointerLocked()) return;
+
+      // Jika user mulai menggeser mouse fisik saat transisi otomatis sedang berjalan,
+      // batalkan transisi otomatis seketika untuk memprioritaskan kontrol fisik murni
+      if (isTransitioning) {
+        isTransitioning = false;
+      }
+
+      const movementX = event.movementX || event.mozMovementX || 0;
+      const movementY = event.movementY || event.mozMovementY || 0;
+
+      lastDeltaX = movementX;
+      lastDeltaY = movementY;
+
+      // Akumulasi murni dari input fisik pengguna (isTrusted: true)
+      cursorX += movementX;
+      cursorY += movementY;
+
+      // Batasi (clamp) koordinat kursor di dalam kanvas
+      cursorX = Math.max(cursorRadius, Math.min(canvas.width - cursorRadius, cursorX));
+      cursorY = Math.max(cursorRadius, Math.min(canvas.height - cursorRadius, cursorY));
+
+      updateStatusUI('Pure Physical Input');
+    });
+
+    // Render loop kanvas
+    function render(currentTime) {
+      // Pembaruan transisi kurva Bézier bertahap
+      if (isTransitioning) {
+        const elapsed = currentTime - transitionStartTime;
+        const progress = Math.min(1, elapsed / transitionDuration);
+        const easedU = easeOutCubic(progress);
+
+        // Titik kurva dengan penambahan micro-jitter acak (+-0.4px) untuk simulasi tremor tangan
+        const point = getBezierPoint(easedU, p0, p1, p2, p3);
+        const microJitterX = progress < 1 ? (Math.random() - 0.5) * 0.8 : 0;
+        const microJitterY = progress < 1 ? (Math.random() - 0.5) * 0.8 : 0;
+
+        cursorX = point.x + microJitterX;
+        cursorY = point.y + microJitterY;
+
+        // Clamp posisi selama transisi
+        cursorX = Math.max(cursorRadius, Math.min(canvas.width - cursorRadius, cursorX));
+        cursorY = Math.max(cursorRadius, Math.min(canvas.height - cursorRadius, cursorY));
+
+        updateStatusUI('Humanized Bézier');
+
+        if (progress >= 1) {
+          isTransitioning = false;
+          cursorX = p3.x;
+          cursorY = p3.y;
+          updateStatusUI('Pure Physical Input');
+        }
+      }
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Kisi latar belakang halus
+      ctx.strokeStyle = '#182436';
+      ctx.lineWidth = 1;
+      const step = 40;
+      for (let x = 0; x < canvas.width; x += step) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < canvas.height; y += step) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+
+      // Garis tengah crosshair
+      ctx.strokeStyle = '#223247';
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(canvas.width / 2, 0);
+      ctx.lineTo(canvas.width / 2, canvas.height);
+      ctx.moveTo(0, canvas.height / 2);
+      ctx.lineTo(canvas.width, canvas.height / 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Gambar kursor kustom
+      ctx.fillStyle = '#ef4444';
+      ctx.beginPath();
+      ctx.arc(cursorX, cursorY, cursorRadius, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(cursorX, cursorY, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      if (!isPointerLocked() && !isTransitioning) {
+        ctx.fillStyle = 'rgba(148, 163, 184, 0.65)';
+        ctx.font = '14px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Klik tombol A atau klik kanvas untuk mengunci kursor (ESC untuk keluar)', canvas.width / 2, canvas.height - 24);
+      }
+
+      requestAnimationFrame(render);
+    }
+
+    // Tombol B: Navigasi ke YouTube
+    btnYoutubeAction.addEventListener('click', () => {
+      youtubeContainer.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
+
+      youtubeContainer.classList.add('is-highlighted');
+      feedbackText.textContent = 'Membuka YouTube di tab baru dan menggulir ke container...';
+
+      setTimeout(() => {
+        youtubeContainer.classList.remove('is-highlighted');
+      }, 2000);
+
+      window.open(youtubeLink.href, '_blank', 'noopener,noreferrer');
+    });
+
+    updateStatusUI();
+    requestAnimationFrame(render);
+  </script>
+</body>
+</html>
